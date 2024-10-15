@@ -173,19 +173,21 @@ async def predict_markers(
         # Remove batch dim and filter for marker_type
         output = output.squeeze(0)
         if marker_type:
-            print(marker_type.value)
             logger.info(f"Filtering the output for marker type '{marker_type}'")
             for k, v in class_map.items():
                 if v == marker_type.value:
                     target_class = float(k)
+                    # Subset the output array with the target class
                     output = output[torch.where(output[:, 5] == target_class)]
             
-        # Get output threshold idx
+        # Get output threshold idx (defaults to 0.5)
         thresh_idx = torch.ge(output[:, -2], threshold)
         output = output[thresh_idx]
-        class_tensor = output[:, 5].to(torch.int)
+        # Get the Class tensor and map to strings
+        class_tensor = output[:4, 5].to(torch.int)
         classes = [class_map.get(str(i.item())) for i in class_tensor] # map to strings
-        coords = output[:, :4].tolist()
+        # Subset the coordinates for the top 4 predictions
+        coords = output[:4, :4].tolist()
 
         # Clean up the call
         if device == 'cuda':
